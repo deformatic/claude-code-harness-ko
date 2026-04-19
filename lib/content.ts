@@ -136,20 +136,50 @@ function buildToc(markdown: string): TocItem[] {
 }
 
 function extractSummary(markdown: string): string {
+  const MAX_SUMMARY_LENGTH = 180;
   const blocks = markdown
     .split(/\n\s*\n/)
     .map((block) => block.trim())
     .filter(Boolean);
 
   for (const block of blocks) {
-    if (block.startsWith("#")) continue;
+    if (
+      block.startsWith("#") ||
+      block.startsWith(">") ||
+      block.startsWith("```") ||
+      /^[-_*]{3,}$/.test(block) ||
+      block.includes("\n|")
+    ) {
+      continue;
+    }
+
     const plain = block
       .replace(/<[^>]+>/g, " ")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
       .replace(/[`*_>#-]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
+
     if (plain.length > 40) {
-      return plain.slice(0, 140);
+      if (plain.length <= MAX_SUMMARY_LENGTH) {
+        return plain;
+      }
+
+      const sentenceClipped = plain
+        .slice(0, MAX_SUMMARY_LENGTH)
+        .match(/^(.+?[.!?。]|.+?다\.|.+?니다\.)\s/u)?.[1]
+        ?.trim();
+
+      if (sentenceClipped && sentenceClipped.length >= 60) {
+        return sentenceClipped;
+      }
+
+      const wordClipped = plain
+        .slice(0, MAX_SUMMARY_LENGTH)
+        .replace(/\s+\S*$/, "")
+        .trim();
+
+      return `${wordClipped}…`;
     }
   }
 
