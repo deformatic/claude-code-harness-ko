@@ -1,25 +1,15 @@
 import { ImageResponse } from "next/og";
-import { getDocumentBySlug } from "@/lib/content";
+import { NextRequest } from "next/server";
 import { AUTHOR_NAME, SITE_NAME } from "@/lib/site";
 
-export const size = {
-  width: 1200,
-  height: 630,
-};
+export const runtime = "nodejs";
 
-export const contentType = "image/png";
-
-type ImageProps = {
-  params: Promise<{ slug: string }>;
-};
-
-export default async function OpenGraphImage({ params }: ImageProps) {
-  const { slug } = await params;
-  const doc = getDocumentBySlug(slug);
-
-  const title = doc?.title ?? "Claude Code Harness";
-  const summary = doc?.summary ?? "한국어로 읽는 Claude Code 분석 아카이브";
-  const meta = doc?.partLabel ?? slug;
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const title = searchParams.get("title") || SITE_NAME;
+  const summary =
+    searchParams.get("summary") || "한국어로 읽는 Claude Code 분석 아카이브";
+  const meta = searchParams.get("meta") || "Harness Engineering 한국어판";
 
   return new ImageResponse(
     (
@@ -100,12 +90,14 @@ export default async function OpenGraphImage({ params }: ImageProps) {
               </div>
               <div style={{ display: "flex" }}>{AUTHOR_NAME}</div>
             </div>
-            <div style={{ display: "flex" }}>{slug}</div>
           </div>
         </div>
       </div>
     ),
-    size
+    {
+      width: 1200,
+      height: 630,
+    }
   );
 }
 

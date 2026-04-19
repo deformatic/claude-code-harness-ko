@@ -20,6 +20,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!doc) {
     return {};
   }
+  const ogImageUrl =
+    `/api/og?title=${encodeURIComponent(doc.title)}` +
+    `&summary=${encodeURIComponent(doc.summary)}` +
+    `&meta=${encodeURIComponent(doc.partLabel ?? doc.slug)}`;
   return {
     title: doc.title,
     description: doc.summary,
@@ -35,7 +39,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       type: "article",
       images: [
         {
-          url: `/read/${doc.slug}/opengraph-image`,
+          url: ogImageUrl,
           width: 1200,
           height: 630,
           alt: `${doc.title} Open Graph image`,
@@ -46,7 +50,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       card: "summary_large_image",
       title: doc.title,
       description: doc.summary,
-      images: [`/read/${doc.slug}/opengraph-image`],
+      images: [ogImageUrl],
     },
   };
 }
