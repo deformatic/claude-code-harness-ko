@@ -1,7 +1,4 @@
-# <아
-href="#chapter-6b-api-communication-layer--retry-streaming-and-degradation-engineering"
-class="header">6b장: API 통신 계층 - 재시도, 스트리밍,
-및 분해공학</a>
+# <a href="#chapter-6b-api-communication-layer--retry-streaming-and-degradation-engineering" class="header">6b장: API 통신 계층 - 재시도, 스트리밍, 및 성능 저하 엔지니어링</a>
 
 > `services/api/` 디렉터리는 SDK 래퍼 레이어가 아닙니다.
 > 에이전트의 **제어 플레인**. 모델 저하, 캐시 보호, 파일
@@ -44,8 +41,7 @@ class="header">6b장: API 통신 계층 - 재시도, 스트리밍,
 
 ## <a href="#source-code-analysis" class="header">소스코드 분석</a>
 
-> **대화형 버전**: [재시도 및 성능 저하를 보려면 클릭하세요.
-> animation](retry-viz.html) — 4가지 시나리오에 대한 타임라인 애니메이션
+> **대화형 버전**: [재시도 및 성능 저하 애니메이션을 보려면 클릭하세요](retry-viz.html) — 4가지 시나리오에 대한 타임라인 애니메이션
 > (정상 / 429 속도 제한 / 529 과부하 / 고속 모드 성능 저하).
 
 ### <a

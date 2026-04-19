@@ -29,6 +29,7 @@ const ROOT = process.cwd();
 const CONTENT_DIR = path.join(ROOT, "ko");
 const TOC_FILE = path.join(CONTENT_DIR, "01-map-toc.md");
 const ORIGINAL_SOURCE_BASE = "https://zhanghandong.github.io/harness-engineering-from-cc-to-ai-coding";
+const VISUALIZATION_BASE = "https://ccunpacked.dev";
 
 const DOC_LINK_RE =
   /https:\/\/zhanghandong\.github\.io\/harness-engineering-from-cc-to-ai-coding\/en\/([^)#\s]+)(?:#[^)]+)?/g;
@@ -264,12 +265,20 @@ function normalizeHref(
     return `${ORIGINAL_SOURCE_BASE}/${originalPath}${hash}`;
   }
 
+  if (hrefPath === "../") {
+    return `${ORIGINAL_SOURCE_BASE}/${hash ? hash.slice(1) : ""}`;
+  }
+
   if (hrefPath.startsWith("../")) {
     const externalPath = hrefPath.replace(/^\.\.\//, "");
     const slug = externalPathToSlug(externalPath);
     if (slugSet.has(slug)) {
       return `/read/${slug}${mapInternalHash(slug, hash, anchorMaps)}`;
     }
+  }
+
+  if (/^[a-z0-9-]+-viz\.html$/i.test(hrefPath)) {
+    return `${VISUALIZATION_BASE}/${hrefPath}${hash}`;
   }
 
   return href;

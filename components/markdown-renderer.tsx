@@ -33,7 +33,7 @@ export function MarkdownRenderer({ markdown }: { markdown: string }) {
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw, rehypeSlug]}
         components={{
-          a({ href, children, ...props }) {
+          a({ href, children, node: _node, ...props }) {
             if (!href) return <a {...props}>{children}</a>;
             const isInternal = href.startsWith("/");
             if (isInternal) {

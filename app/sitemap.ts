@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 import { getAllDocuments } from "@/lib/content";
+import { SITE_URL } from "@/lib/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = "https://claude-code-harness.vercel.app";
+  const base = SITE_URL;
   const docs = getAllDocuments().map((doc) => ({
     url: `${base}/read/${doc.slug}`,
     changeFrequency: "weekly" as const,
