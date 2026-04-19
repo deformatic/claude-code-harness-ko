@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { getAllDocuments, getDocumentBySlug } from "@/lib/content";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -28,8 +29,24 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: doc.title,
       description: doc.summary,
-      url: `/read/${doc.slug}`,
+      url: `${SITE_URL}/read/${doc.slug}`,
+      siteName: SITE_NAME,
+      locale: "ko_KR",
       type: "article",
+      images: [
+        {
+          url: `/read/${doc.slug}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          alt: `${doc.title} Open Graph image`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: doc.title,
+      description: doc.summary,
+      images: [`/read/${doc.slug}/opengraph-image`],
     },
   };
 }

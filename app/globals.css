@@ -147,6 +147,20 @@ code {
   color: var(--foreground-strong);
 }
 
+.nav-link--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+}
+
+.nav-link--icon svg {
+  width: 18px;
+  height: 18px;
+}
+
 .page-section {
   padding: 48px 0;
 }
