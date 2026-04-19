@@ -28,6 +28,7 @@ export type DocumentItem = {
 const ROOT = process.cwd();
 const CONTENT_DIR = path.join(ROOT, "ko");
 const TOC_FILE = path.join(CONTENT_DIR, "01-map-toc.md");
+const ORIGINAL_SOURCE_BASE = "https://zhanghandong.github.io/harness-engineering-from-cc-to-ai-coding";
 
 const DOC_LINK_RE =
   /https:\/\/zhanghandong\.github\.io\/harness-engineering-from-cc-to-ai-coding\/en\/([^)#\s]+)(?:#[^)]+)?/g;
@@ -135,6 +136,22 @@ function buildToc(markdown: string): TocItem[] {
   return toc;
 }
 
+function buildAnchorMap(markdown: string): Map<string, string> {
+  const slugger = new GithubSlugger();
+  const anchorMap = new Map<string, string>();
+  const headingAnchorRe =
+    /^(#{1,6})\s+<a\b(?=[\s\S]*?class="header")[\s\S]*?href="#([^"]+)"[\s\S]*?>([\s\S]*?)<\/a>\s*$/gm;
+
+  for (const match of markdown.matchAll(headingAnchorRe)) {
+    const oldId = match[2];
+    const text = stripHeaderAnchor(match[3]);
+    if (!oldId || !text) continue;
+    anchorMap.set(oldId, slugger.slug(text));
+  }
+
+  return anchorMap;
+}
+
 function extractSummary(markdown: string): string {
   const MAX_SUMMARY_LENGTH = 180;
   const blocks = markdown
@@ -193,8 +210,82 @@ function normalizeHeadingAnchors(markdown: string): string {
   );
 }
 
-function normalizeLinks(markdown: string, slugSet: Set<string>): string {
-  return markdown.replace(DOC_LINK_RE, (full, externalPath) => {
+function splitHref(href: string): { path: string; hash: string } {
+  const [pathPart, hashPart] = href.split("#", 2);
+  return {
+    path: pathPart,
+    hash: hashPart ? `#${hashPart}` : "",
+  };
+}
+
+function mapInternalHash(
+  slug: string,
+  hash: string,
+  anchorMaps: Map<string, Map<string, string>>
+): string {
+  if (!hash) return "";
+  const oldId = hash.slice(1);
+  const docAnchors = anchorMaps.get(slug);
+  const mapped = docAnchors?.get(oldId);
+  if (mapped) return `#${mapped}`;
+
+  const normalizedOldId = oldId.replace(/[^a-z0-9]/gi, "").toLowerCase();
+  const fallback = docAnchors
+    ? Array.from(docAnchors.entries()).find(
+        ([sourceId]) =>
+          sourceId.replace(/[^a-z0-9]/gi, "").toLowerCase() === normalizedOldId
+      )?.[1]
+    : undefined;
+  return fallback ? `#${fallback}` : "";
+}
+
+function normalizeHref(
+  href: string,
+  slugSet: Set<string>,
+  anchorMaps: Map<string, Map<string, string>>
+): string {
+  if (!href || href.startsWith("#")) return href;
+
+  const { path: hrefPath, hash } = splitHref(href);
+  const absoluteMatch = hrefPath.match(
+    /^https:\/\/zhanghandong\.github\.io\/harness-engineering-from-cc-to-ai-coding\/en\/(.+\.html)$/
+  );
+
+  if (absoluteMatch) {
+    const slug = externalPathToSlug(absoluteMatch[1]);
+    if (slugSet.has(slug)) {
+      return `/read/${slug}${mapInternalHash(slug, hash, anchorMaps)}`;
+    }
+    return href;
+  }
+
+  if (hrefPath.startsWith("../../")) {
+    const originalPath = hrefPath.replace(/^(?:\.\.\/)+/, "");
+    return `${ORIGINAL_SOURCE_BASE}/${originalPath}${hash}`;
+  }
+
+  if (hrefPath.startsWith("../")) {
+    const externalPath = hrefPath.replace(/^\.\.\//, "");
+    const slug = externalPathToSlug(externalPath);
+    if (slugSet.has(slug)) {
+      return `/read/${slug}${mapInternalHash(slug, hash, anchorMaps)}`;
+    }
+  }
+
+  return href;
+}
+
+function normalizeLinks(
+  markdown: string,
+  slugSet: Set<string>,
+  anchorMaps: Map<string, Map<string, string>>
+): string {
+  const normalizedMarkdownLinks = markdown.replace(/\]\(([^)\s]+)\)/g, (full, href: string) => {
+    const normalizedHref = normalizeHref(href, slugSet, anchorMaps);
+    return normalizedHref === href ? full : `](${normalizedHref})`;
+  });
+
+  return normalizedMarkdownLinks.replace(DOC_LINK_RE, (full, externalPath) => {
     const slug = externalPathToSlug(externalPath);
     if (slugSet.has(slug)) {
       return `/read/${slug}`;
@@ -207,8 +298,16 @@ function normalizeTableWrappers(markdown: string): string {
   return markdown.replace(/<div class="table-wrapper">\s*/g, "").replace(/\s*<\/div>/g, "");
 }
 
-function normalizeMarkdown(markdown: string, slugSet: Set<string>): string {
-  return normalizeLinks(normalizeTableWrappers(normalizeHeadingAnchors(markdown)), slugSet);
+function normalizeMarkdown(
+  markdown: string,
+  slugSet: Set<string>,
+  anchorMaps: Map<string, Map<string, string>>
+): string {
+  return normalizeLinks(
+    normalizeTableWrappers(normalizeHeadingAnchors(markdown)),
+    slugSet,
+    anchorMaps
+  );
 }
 
 export function normalizeImageSrc(src: string): string {
@@ -227,13 +326,21 @@ export function getAllDocuments(): DocumentItem[] {
   const orderMap = parseOrderMap();
   const files = getMarkdownFiles();
   const slugSet = new Set(files.map((file) => file.replace(/\.md$/, "")));
+  const anchorMaps = new Map<string, Map<string, string>>();
+
+  files.forEach((file) => {
+    const slug = file.replace(/\.md$/, "");
+    const sourcePath = path.join(CONTENT_DIR, file);
+    const original = fs.readFileSync(sourcePath, "utf8");
+    anchorMaps.set(slug, buildAnchorMap(original));
+  });
 
   const docs: DocumentItem[] = files
     .map((file, index) => {
       const slug = file.replace(/\.md$/, "");
       const sourcePath = path.join(CONTENT_DIR, file);
       const original = fs.readFileSync(sourcePath, "utf8");
-      const normalized = normalizeMarkdown(original, slugSet);
+      const normalized = normalizeMarkdown(original, slugSet, anchorMaps);
       const record = orderMap.get(slug);
       return {
         slug,
